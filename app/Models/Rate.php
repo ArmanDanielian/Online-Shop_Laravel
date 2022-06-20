@@ -52,7 +52,7 @@ class Rate extends Model
             ->when($user->isSeller(), function ($query) use ($user) { # for seller show only those rates that belong to his products
                 $shopIds = $user->shops->pluck('id')->toArray();
                 $query
-                    ->whereHas('product', function ($query) use ($shopIds) { // Co-related subquery
+                    ->whereHas('product', function ($query) use ($shopIds) {
                         $query
                             ->whereIn('shop_id', $shopIds);
                     });

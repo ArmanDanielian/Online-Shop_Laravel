@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -18,7 +19,7 @@ class UpdateShopRequest extends FormRequest
      */
     public function authorize()
     {
-        return $this->shop->user_id === auth()->id();
+        return $this->shop->user_id === auth()->id() || User::TYPE_SLUGS[auth()->user()->type] === 'admin';
     }
 
     /**
@@ -28,7 +29,6 @@ class UpdateShopRequest extends FormRequest
      */
     public function rules()
     {
-//        dd($this->shop->user_id);
         $regex = '/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/';
         return [
             'name' => ['required', 'string', 'min:3', 'max:255'],

@@ -77,11 +77,16 @@ class RateController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param int $id
+     * @param Order $order
+     * @param Rate $rate
      * @return \Illuminate\Http\Response
      */
-    public function show(Order $order, Rate $rate)
+    public function show(Order $order, Rate $rate): JsonResponse
     {
+        return response()->json([
+            'status' => trans('shop.success'),
+            'data' => $rate
+        ], Response::HTTP_OK);
     }
 
     /**
@@ -91,9 +96,8 @@ class RateController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, Rate $rate): JsonResponse
     {
-        $rate = Rate::findOrFail($id);
         if ($rate->user_id === auth()->id()) {
             $rate->update([
                 'rate' => $request->rate
@@ -110,13 +114,13 @@ class RateController extends Controller
 
     /**
      * Remove the specified resource from storage.
+     * Rate can only be deleted by admin
      *
      * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function destroy(Rate $rate): JsonResponse
     {
-        #rate-ը կարա destroy անի մենակ admin-ը
         $rate->delete();
         return response()->json([
             'status' => trans('shop.success'),
@@ -124,7 +128,16 @@ class RateController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function report(Request $request, Rate $rate)
+    /**
+     * 0 no report
+     * 1 seller reports
+     * 2 report rejected by admin
+     *
+     * @param Request $request
+     * @param Rate $rate
+     * @return JsonResponse
+     */
+    public function report(Request $request, Rate $rate): JsonResponse
     {
         $user = auth()->user();
         if ($user->isSeller()) {
@@ -140,7 +153,7 @@ class RateController extends Controller
                     'message' => 'You don\'t have rate'
                 ], Response::HTTP_NOT_FOUND);
             }
-        } elseif ($rate->report_status === 1) {  # admin-նա մտել
+        } elseif ($rate->report_status === 1) {
             $rate->update([
                 'report_status' => 2,
                 'report_comment' => $request['report_comment']

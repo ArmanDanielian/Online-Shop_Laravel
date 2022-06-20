@@ -59,11 +59,10 @@ class CartItemController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request, CartItem $cartItem): JsonResponse
     {
-        $item = CartItem::findOrFail($id);
-        if ($item->user_id === auth()->id()) {
-            $item->update([
+        if ($cartItem->user_id === auth()->id()) {
+            $cartItem->update([
                 'count' => $request->count
             ]);
             return response()->json([
@@ -84,15 +83,14 @@ class CartItemController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id): JsonResponse
+    public function destroy(CartItem $cartItem): JsonResponse
     {
-        $item = CartItem::findOrFail($id);
-        if ($item->user_id === auth()->id()) {
-            $item->delete();
+        if ($cartItem->user_id === auth()->id()) {
+            $cartItem->delete();
             return response()->json([
                 'status' => trans('shop.success'),
                 'message' => 'Cart deleted successfully',
-                'item' => $item
+                'item' => $cartItem
             ], Response::HTTP_OK);
         } else {
             return response()->json([

@@ -64,7 +64,7 @@ class ProductController extends Controller
     {
         $user = auth()->user();
         if ($user->isSeller()) {
-            if ($product->isShopProduct($shop) && $shop->isSellerShop()) {
+            if ($shop->isSellerShop()) {
                 return response()->json([
                     'status' => trans('shop.success'),
                     'data' => $product
@@ -93,7 +93,7 @@ class ProductController extends Controller
     {
         $user = auth()->user();
         if ($user->isSeller()) {
-            if ($product->isShopProduct($shop) && $shop->isSellerShop()) {
+            if ($shop->isSellerShop()) {
                 $product->update($request->validated());
             } else {
                 return response()->json([
@@ -120,7 +120,7 @@ class ProductController extends Controller
     {
         $user = auth()->user();
         if ($user->isSeller()) {
-            if ($shop->isSellerShop() && $product->isShopProduct($shop)) {
+            if ($shop->isSellerShop()) {
                 $product->delete();
             } else {
                 return response()->json([

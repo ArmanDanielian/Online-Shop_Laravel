@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ReorderProductImageRequest;
+use App\Http\Requests\StoreProductImageRequest;
+use App\Models\Product;
 use App\Models\ProductImage;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,39 +27,24 @@ class ProductImageController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreProductImageRequest $request, Product $product): JsonResponse
     {
-        if (!$request->hasFile('path')) {
-            return response()->json(['upload_file_not_found'], 400);
+        if ($product->shop->isSellerShop()) {
+            $file = $request->validated()['path'];
+            $file->store('public/Uploads');
+            $name = $file->getClientOriginalName();
+            $validated = $request->validated();
+            $validated['name'] = $name;
+            $image = $product->images()->create($validated);
+
+            return response()->json([
+                'message' => 'File uploaded',
+                'data' => $image
+            ], 200);
         }
-
-        $allowedfileExtension = ['jpg', 'png'];
-        $file = $request->file('path');
-
-        $extension = $file->getClientOriginalExtension();
-
-        $check = in_array($extension, $allowedfileExtension);
-
-        if ($check) {
-            $mediaFile = $request->path;
-
-            $path = $mediaFile->store('public/Uploads');
-            $name = $mediaFile->getClientOriginalName();
-
-            //store image file into directory and db
-            $save = new ProductImage();
-            $save->name = $name;
-            $save->path = $path;
-            $save->product_id = $request->product_id;
-            $save->default = $request->default;
-            $save->order = $request->order;
-            $save->save();
-
-        } else {
-            return response()->json(['invalid_file_format'], 422);
-        }
-
-        return response()->json(['file_uploaded'], 200);
+        return response()->json([
+            'message' => 'You don\'t have product'
+        ], 200);
     }
 
     /**
@@ -66,9 +53,12 @@ class ProductImageController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Product $product, ProductImage $image): JsonResponse
     {
-        //
+        return response()->json([
+            'status' => trans('shop.success'),
+            'data' => $image
+        ], Response::HTTP_OK);
     }
 
     /**
@@ -94,40 +84,35 @@ class ProductImageController extends Controller
         //
     }
 
-    public function reorder(Request $request)
+    /**
+     * Сhange the order of the images
+     *
+     * @param ReorderProductImageRequest $request
+     * @param Product $product
+     * @return JsonResponse
+     */
+    public function reorder(ReorderProductImageRequest $request, Product $product): JsonResponse
     {
-        $orders = $request->orders;
+        $orders = $request->validated()['orders'];
         $ids = array_column($orders, 'id');
-        $imageProduct_ids = ProductImage::whereIn('id', $ids)->get()->pluck('product_id')->toArray();
-
-        if (count(array_unique($imageProduct_ids)) === 1) { #All values in the $imageProductIds are the same
-            $ords = array_column($orders, 'order');
-            $diffOrder = count(array_unique($ords)) === count($ords); #Order of images are different
-            $maxOrd = count($imageProduct_ids) >= max($ords); #Order's number must not exceed the number of images
-            if ($diffOrder && $maxOrd) {
-                $sellerProducts = User::findOrFail(auth()->id())->products;
-                $sellerProductNames = $sellerProducts->pluck('name')->toArray();
-                $productOfImage = ProductImage::findOrfail($ids[0])->product->name;
-                if (in_array($productOfImage, $sellerProductNames)) {
-                    foreach ($orders as $item) {
-                        ProductImage::findOrFail($item['id'])->update([
-                            'order' => $item['order']
-                        ]);
-                    }
-                    return response()->json([
-                        'status' => trans('shop.success'),
-                        'message' => 'The order of images has changed successfully'
-                    ], Response::HTTP_OK);
-                } else {
-                    return response()->json([
-                        'status' => trans('shop.notFound'),
-                        'message' => 'These are not your images, and you can\'t reorder them'
-                    ], Response::HTTP_NOT_FOUND);
+        $image_ids = ProductImage::whereIn('id', $ids)->get()->pluck('product_id')->toArray();
+        if (count(array_unique($image_ids)) === 1) { # All belong to the same product
+            $sellerProducts = auth()->user()->products;
+            $sellerProductNames = $sellerProducts->pluck('name')->toArray();
+            if (in_array($product->name, $sellerProductNames)) {
+                foreach ($orders as $item) {
+                    ProductImage::findOrFail($item['id'])->update([
+                        'order' => $item['order']
+                    ]);
                 }
-            } else {
                 return response()->json([
-                    'status' => trans('shop.notFound'),
-                    'message' => 'Order of images must be different and must not exceed the number of images'
+                    'status' => trans('shop.success'),
+                    'message' => 'The order of images has changed successfully'
+                ], Response::HTTP_OK);
+            }
+            else {
+                return response()->json([
+                    'status' => trans('shop.notFound')
                 ], Response::HTTP_NOT_FOUND);
             }
         } else {

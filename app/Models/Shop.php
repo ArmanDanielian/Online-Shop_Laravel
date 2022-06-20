@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Shop extends Model
 {
@@ -39,10 +40,9 @@ class Shop extends Model
 
     public function scopeForSeller($query, $user)
     {
-        $query
+        return $query
             ->when($user->isSeller(), function ($query) use ($user) {
-                $query
-                    ->where('user_id', $user->id);
+                return $user->shops();
             });
     }
 }

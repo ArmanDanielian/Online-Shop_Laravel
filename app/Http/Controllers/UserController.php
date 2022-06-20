@@ -31,10 +31,10 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id): JsonResponse
+    public function show(User $user): JsonResponse
     {
         return response()->json([
-            'data' => User::findOrFail($id)
+            'data' => $user
         ]);
     }
 
@@ -45,9 +45,8 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(UpdateUserRequest $request, $id): JsonResponse
+    public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        $user = User::findOrFail($id);
         $validatedData = $request->validated();
         if (isset($validatedData['new_password'])) {
             $validatedData['password'] = bcrypt($validatedData['new_password']);
@@ -60,6 +59,7 @@ class UserController extends Controller
         $user->update($validatedData);
 
         return response()->json([
+            'status' => 'Success',
             'data' => $user
         ]);
     }
@@ -70,9 +70,13 @@ class UserController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id): JsonResponse
+    public function destroy(User $user): JsonResponse
     {
-        User::findOrFail($id)->delete();
+        if (auth()->user()->isAdmin()) {
+            $user->delete();
+        } elseif ($user->id === auth()->id()) {
+            $user->delete();
+        }
         return response()->json([
             'message' => 'deleted'
         ], 204);

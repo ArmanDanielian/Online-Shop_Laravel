@@ -19,7 +19,8 @@ class CategoryController extends Controller
         $categories = Category::where('parent_id', NULL)
             ->with('children')->get();
         return response()->json([
-           'data' => $categories
+            'status' => 'Success',
+            'data' => $categories
         ]);
     }
 
@@ -44,10 +45,10 @@ class CategoryController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id): JsonResponse
+    public function show(Category $category): JsonResponse
     {
-        $category = Category::findOrFail($id);
         return response()->json([
+            'status' => 'Success',
             'data' => $category
         ], Response::HTTP_OK);
     }
